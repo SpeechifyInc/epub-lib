@@ -1,5 +1,5 @@
 {
-  "name": "@speechifyinc/epub2",
+  "name": "@speechifyinc/epub-lib",
   "version": "3.0.3",
   "description": "Parse ePub electronic book files with Node.JS",
   "publishConfig": {
@@ -28,5 +28,6 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "packageManager": "pnpm@10.20.0"
 }
