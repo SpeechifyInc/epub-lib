@@ -1,6 +1,6 @@
 {
   "name": "@speechifyinc/epub-lib",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Parse ePub electronic book files with Node.JS",
   "publishConfig": {
     "access": "restricted",
@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test": "pnpm run build && node --experimental-strip-types --test test/epub.test.ts",
     "prepublishOnly": "pnpm run build"
   },
   "license": "MIT",

@@ -665,11 +665,22 @@ export class EPub extends EventEmitter
 	/**
 	 *  EPub#parseTOC() -> undefined
 	 *
-	 *  Parses ncx file for table of contents (title, html file)
+	 *  Parses ncx file for table of contents (title, html file).
+	 *  If the NCX file is missing from the archive (common in EPUB3 files that
+	 *  only ship toc.xhtml), emits "end" gracefully so that epub.flow /
+	 *  spine.contents remain usable.
 	 **/
 	parseTOC()
 	{
-		var i, len, path = this.spine.toc.href.split("/"), id_list = {}, keys;
+		const tocHref = this.spine.toc && this.spine.toc.href;
+
+		if (!tocHref || !this.zip.names.includes(tocHref))
+		{
+			this.emit("end");
+			return;
+		}
+
+		var i, len, path = tocHref.split("/"), id_list = {}, keys;
 		path.pop();
 
 		keys = Object.keys(this.manifest);
@@ -680,7 +691,7 @@ export class EPub extends EventEmitter
 
 		const xml2jsOptions = this._getStatic().xml2jsOptions;
 
-		this.zip.readFile(this.spine.toc.href,  (err, data) =>
+		this.zip.readFile(tocHref, (err, data) =>
 		{
 			if (err)
 			{
