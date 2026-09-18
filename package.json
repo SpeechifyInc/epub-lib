@@ -1,6 +1,6 @@
 {
   "name": "@speechifyinc/epub-lib",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "Parse ePub electronic book files with Node.JS",
   "publishConfig": {
     "access": "restricted",

@@ -65,3 +65,67 @@ test('EPUB3 without NCX: large real-world file — life-span development', { ski
   const ch = await epub.getChapterRawAsync(epub.flow[0].id);
   assert.ok(ch.length > 0, 'first chapter content should be readable');
 });
+
+// ---------------------------------------------------------------------------
+// Chapter media types — regression for "Invalid mime type for chapter"
+// ---------------------------------------------------------------------------
+// EPUB 2 asks for `application/xhtml+xml`, but Calibre and several web
+// exporters declare their content documents as plain `text/html`. Those books
+// are perfectly readable, and refusing them lost the whole book: in a 14-day
+// production sample of Speechify's extraction failures, 276 of 300 were this
+// one message.
+
+test('text/html chapters are readable — epub2-text-html.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-text-html.epub') as InstanceType<typeof EPub>;
+
+  const ch = await epub.getChapterRawAsync('chapter-1');
+  assert.ok(ch.includes('declared as text/html'), 'a text/html chapter should be readable');
+});
+
+test('a media type with a charset parameter is readable — epub2-text-html.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-text-html.epub') as InstanceType<typeof EPub>;
+
+  // Media types are case-insensitive and may carry parameters (RFC 9110).
+  const ch = await epub.getChapterRawAsync('chapter-2');
+  assert.ok(ch.includes('with a charset parameter'), 'TEXT/HTML; charset=utf-8 should be readable');
+});
+
+test('application/xhtml+xml chapters still read — epub2-xhtml.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-xhtml.epub') as InstanceType<typeof EPub>;
+
+  const ch = await epub.getChapterRawAsync('chapter-1');
+  assert.ok(ch.includes('declared as application/xhtml+xml'), 'the compliant path must be unchanged');
+});
+
+test('image/svg+xml chapters still read — epub2-text-html.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-text-html.epub') as InstanceType<typeof EPub>;
+
+  const ch = await epub.getChapterRawAsync('page-3');
+  assert.ok(ch.includes('rendered as SVG'), 'the second accepted type must be unchanged');
+});
+
+test('a non-document manifest entry is still refused — epub2-text-html.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-text-html.epub') as InstanceType<typeof EPub>;
+
+  // Widening to text/html must not turn this into "read anything": a
+  // stylesheet is not a chapter and asking for one is still a caller error.
+  await assert.rejects(
+    () => epub.getChapterRawAsync('css'),
+    /Invalid mime type for chapter "css" text\/css/,
+    'text/css must still be refused, by name',
+  );
+});
+
+test('an unknown chapter id is still refused — epub2-text-html.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-text-html.epub') as InstanceType<typeof EPub>;
+
+  await assert.rejects(() => epub.getChapterRawAsync('no-such-id'), /File not found/);
+});
+
+test('getChapter reads a text/html chapter too — epub2-text-html.epub', async () => {
+  const epub = await EPub.createAsync('test/example/epub2-text-html.epub') as InstanceType<typeof EPub>;
+
+  // The cooked variant runs through getChapterRaw, so it was refused as well.
+  const ch = await epub.getChapterAsync('chapter-1');
+  assert.ok(ch.includes('declared as text/html'), 'getChapter should read it as well');
+});
