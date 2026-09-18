@@ -15,6 +15,36 @@ import { isEpub } from './epub/isEpub';
 import { IMetadata, IMetadataList, INcx, INcxTree, ISpine, ISpineContents, TocElement } from "./epub/const";
 
 /**
+ * Media types `getChapterRaw` will read a content document from.
+ *
+ * EPUB 2 and 3 both specify `application/xhtml+xml` for content documents, and
+ * SVG is the other permitted form. `text/html` is not conforming, but Calibre
+ * and several web exporters emit it, and those books are perfectly readable —
+ * refusing them lost the whole book rather than one chapter. Keep this set
+ * narrow: it is what stops a stylesheet or a font from being handed back as
+ * chapter text.
+ */
+const CHAPTER_MEDIA_TYPES: ReadonlySet<string> = new Set([
+	"application/xhtml+xml",
+	"image/svg+xml",
+	"text/html",
+]);
+
+/**
+ * Media types are case-insensitive and may carry parameters (RFC 9110 8.3), so
+ * `TEXT/HTML; charset=utf-8` names the same type as `text/html`.
+ */
+export function isChapterMediaType(mediaType: string | undefined): boolean
+{
+	if (!mediaType)
+	{
+		return false;
+	}
+
+	return CHAPTER_MEDIA_TYPES.has(mediaType.split(";")[0].trim().toLowerCase());
+}
+
+/**
  *  new EPub(fname[, imageroot][, linkroot])
  *  - fname (String): filename for the ebook
  *  - imageroot (String): URL prefix for images
@@ -1017,7 +1047,7 @@ export class EPub extends EventEmitter
 	{
 		if (this.manifest[chapterId])
 		{
-			if (!(this.manifest[chapterId]['media-type'] == "application/xhtml+xml" || this.manifest[chapterId]['media-type'] == "image/svg+xml"))
+			if (!isChapterMediaType(this.manifest[chapterId]['media-type']))
 			{
 				return callback(new Error(`Invalid mime type for chapter "${chapterId}" ${this.manifest[chapterId]['media-type']}`));
 			}
